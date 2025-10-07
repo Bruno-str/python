@@ -1,0 +1,198 @@
+"""
+rpg_personagens.py
+"""
+
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+
+Base = declarative_base()
+engine = create_engine("sqlite:///rpg.db", echo=False, future=True)
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# ---------------------------------------
+# CLASSE BASE
+# ---------------------------------------
+class Personagem(Base):
+    __tablename__ = "personagens"
+
+    id = Column(Integer, primary_key=True)
+    nome = Column(String, nullable=False)
+    nivel = Column(Integer, default=1)
+    vida = Column(Float, default=100)
+    mana = Column(Float, default=50)
+    forca = Column(Float, default=10)
+    destreza = Column(Float, default=10)
+    tipo = Column(String)  # usado para identificar a subclasse
+
+    __mapper_args__ = {
+        "polymorphic_identity": "personagem",
+        "polymorphic_on": tipo
+    }
+
+    # Métodos gerais
+    def atacar(self):
+        print(f"{self.nome} ataca com força {self.forca}!")
+
+    def defender(self):
+        print(f"{self.nome} defende e reduz o dano!")
+
+    def usar_habilidade(self, habilidade, alvo):
+        print(f"{self.nome} usa {habilidade} em {alvo}!")
+
+    def receber_dano(self, dano):
+        self.vida -= dano
+        print(f"{self.nome} recebeu {dano} de dano. Vida atual: {self.vida}")
+
+
+# ---------------------------------------
+# GUERREIRO
+# ---------------------------------------
+class Guerreiro(Personagem):
+    __tablename__ = "guerreiros"
+    id = Column(Integer, ForeignKey("personagens.id"), primary_key=True)
+    armadura = Column(Float, default=20)
+    arma = Column(String, default="Espada")
+
+    __mapper_args__ = {
+        "polymorphic_identity": "guerreiro",
+    }
+
+    def golpe_pesado(self, alvo):
+        print(f"{self.nome} realiza um golpe pesado com {self.arma} em {alvo}!")
+
+    def bloquear(self):
+        print(f"{self.nome} bloqueia o ataque, reduzindo o dano!")
+
+# ---------------------------------------
+# MAGO
+# ---------------------------------------
+class Mago(Personagem):
+    __tablename__ = "magos"
+    id = Column(Integer, ForeignKey("personagens.id"), primary_key=True)
+    livro_de_magia = Column(String, default="Feitiços Iniciais")
+    poder_magico = Column(Float, default=25)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "mago",
+    }
+
+    def lancar_feitico(self, feitico, alvo):
+        print(f"{self.nome} lança {feitico} em {alvo}!")
+
+    def recuperar_mana(self):
+        self.mana += 10
+        print(f"{self.nome} recuperou mana. Mana atual: {self.mana}")
+
+
+# ---------------------------------------
+# ARQUEIRO
+# ---------------------------------------
+class Arqueiro(Personagem):
+    __tablename__ = "arqueiros"
+    id = Column(Integer, ForeignKey("personagens.id"), primary_key=True)
+    alcance = Column(Float, default=30)
+    municao = Column(Integer, default=20)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "arqueiro",
+    }
+
+    def disparar_flecha(self, alvo):
+        if self.municao > 0:
+            self.municao -= 1
+            print(f"{self.nome} dispara uma flecha em {alvo}! Munição restante: {self.municao}")
+        else:
+            print(f"{self.nome} está sem flechas!")
+
+    def flecha_explosiva(self, alvo):
+        print(f"{self.nome} dispara uma flecha explosiva em {alvo}!")
+
+
+# ---------------------------------------
+# CAVALEIRO
+# ---------------------------------------
+class Cavaleiro(Personagem):
+    __tablename__ = "cavaleiros"
+    id = Column(Integer, ForeignKey("personagens.id"), primary_key=True)
+    cavalo = Column(String, default="Cavalo de Guerra")
+    lanca = Column(String, default="Lança")
+
+    __mapper_args__ = {
+        "polymorphic_identity": "cavaleiro",
+    }
+
+    def investida(self, alvo):
+        print(f"{self.nome} investe contra {alvo} com sua {self.lanca} montado em {self.cavalo}!")
+
+    def comandar_exercito(self):
+        print(f"{self.nome} comanda seus aliados, aumentando o moral!")
+
+
+# ---------------------------------------
+# CLÉRIGO
+# ---------------------------------------
+class Clerigo(Personagem):
+    __tablename__ = "clerigos"
+    id = Column(Integer, ForeignKey("personagens.id"), primary_key=True)
+    fe = Column(Float, default=30)
+    cura = Column(Float, default=20)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "clerigo",
+    }
+
+    def curar(self, aliado):
+        print(f"{self.nome} cura {aliado} em {self.cura} pontos de vida!")
+
+    def escudo_divino(self):
+        print(f"{self.nome} cria um escudo divino para proteger os aliados!")
+
+
+# ---------------------------------------
+# MONSTRO
+# ---------------------------------------
+class Monstro(Personagem):
+    __tablename__ = "monstros"
+    id = Column(Integer, ForeignKey("personagens.id"), primary_key=True)
+    tipo_monstro = Column(String)
+    agressividade = Column(Float, default=10)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "monstro",
+    }
+
+    def rugir(self):
+        print(f"O {self.tipo_monstro} ruge! Os inimigos sentem medo!")
+
+    def ataque_especial(self, alvo):
+        print(f"O {self.tipo_monstro} usa seu ataque especial contra {alvo}!")
+
+
+# ---------------------------------------
+# CRIA O BANCO E TESTA
+# ---------------------------------------
+def criar_banco():
+    Base.metadata.create_all(engine)
+    print("Banco de dados criado com sucesso!")
+
+def testar_personagens():
+    session = Session()
+
+    g1 = Guerreiro(nome="Thorin", nivel=5, vida=200, forca=30)
+    m1 = Mago(nome="Merlin", nivel=7, mana=150, poder_magico=50)
+    a1 = Arqueiro(nome="Legolas", nivel=6)
+    c1 = Clerigo(nome="Lumin", nivel=4)
+    monstro = Monstro(nome="Dragão", tipo_monstro="Dragão", vida=500)
+
+    session.add_all([g1, m1, a1, c1, monstro])
+    session.commit()
+
+    print("Personagens adicionados ao banco!")
+
+    for p in session.query(Personagem).all():
+        print(p.nome, "-", p.tipo)
+
+if __name__ == "__main__":
+    criar_banco()
+    testar_personagens()
