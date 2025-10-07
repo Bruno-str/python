@@ -1,0 +1,109 @@
+"""
+game_cadastro.py
+Sistema de cadastro de menus — usando apenas SQLAlchemy (banco em memória).
+Nenhum arquivo .db será criado.
+"""
+
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+
+# Criação da base do ORM
+Base = declarative_base()
+
+# Banco em memória — não cria arquivo físico
+ENGINE = create_engine("sqlite:///:memory:", echo=False, future=True)
+Session = sessionmaker(bind=ENGINE)
+
+class Menu(Base):
+    """
+    Representa a tabela 'menus' no banco.
+    Cada menu possui um ID e um nome.
+    """
+    __tablename__ = "menus"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+
+    # Um menu pode ter vários itens
+    items = relationship("Item", back_populates="menu", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Menu(id={self.id}, name={self.name!r})>"
+
+class Item(Base):
+    """
+    Representa a tabela 'items' (itens pertencentes a um menu).
+    """
+    __tablename__ = "items"
+    id = Column(Integer, primary_key=True)
+    menu_id = Column(Integer, ForeignKey("menus.id"), nullable=False)
+    name = Column(String(100), nullable=False)
+    type = Column(String(50))
+
+    menu = relationship("Menu", back_populates="items")
+
+    def __repr__(self):
+        return f"<Item(id={self.id}, name={self.name!r}, type={self.type!r})>"
+
+# Criação das tabelas (em memória)
+Base.metadata.create_all(ENGINE)
+session = Session()
+
+# --- Funções CRUD ---
+
+def add_menu(name: str):
+    """Cria um novo menu."""
+    m = Menu(name=name)
+    session.add(m)
+    session.commit()
+    return m
+
+def list_menus():
+    """Lista todos os menus."""
+    return session.query(Menu).all()
+
+def delete_menu(menu_id: int):
+    """Exclui um menu pelo ID."""
+    m = session.get(Menu, menu_id)
+    if not m:
+        return False
+    session.delete(m)
+    session.commit()
+    return True
+
+# --- Interface (terminal) ---
+def main_menu():
+    while True:
+        print("\n== Cadastro de Menus ==")
+        print("1) Criar menu")
+        print("2) Listar menus")
+        print("3) Excluir menu")
+        print("0) Sair")
+        opt = input("Escolha: ").strip()
+
+        try:
+            if opt == "1":
+                name = input("Nome do menu: ").strip()
+                m = add_menu(name)
+                print("Criado:", m)
+
+            elif opt == "2":
+                menus = list_menus()
+                for m in menus:
+                    print(m)
+
+            elif opt == "3":
+                mid = int(input("ID do menu: "))
+                ok = delete_menu(mid)
+                print("Excluído." if ok else "ID não encontrado.")
+
+            elif opt == "0":
+                break
+
+            else:
+                print("Opção inválida.")
+        except Exception as e:
+            session.rollback()
+            print("Erro:", e)
+
+if __name__ == "__main__":
+    main_menu()
