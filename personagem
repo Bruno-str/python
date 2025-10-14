@@ -183,7 +183,7 @@ def testar_personagens():
     m1 = Mago(nome="Merlin", nivel=7, mana=150, poder_magico=50)
     a1 = Arqueiro(nome="Legolas", nivel=6)
     c1 = Clerigo(nome="Lumin", nivel=4)
-    monstro = Monstro(nome="Dragão", tipo_monstro="Dragão", vida=500)
+    monstro = Monstro(nome="Goblin", tipo_monstro="Dragão", vida=100)
 
     session.add_all([g1, m1, a1, c1, monstro])
     session.commit()
